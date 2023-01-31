@@ -1,0 +1,33 @@
+USE DATABASE TRAINING;
+USE SCHEMA PUBLIC;
+
+SELECT * FROM REAL_STATE LIMIT 10;
+
+create or replace masking policy ZIP_MASK as (val string) returns string ->
+  case
+    when current_role() in ('ACCOUNTADMIN') then val
+    --when current_account() in ('AE64240') then val
+    else '*********'
+  end;
+
+--alter table training.public.real_state modify column zip_code unset masking policy;
+
+alter table training.public.real_state modify column zip_code set masking policy ZIP_MASK;
+
+
+use role sysadmin;
+SELECT * FROM REAL_STATE LIMIT 10;
+
+
+
+CREATE OR REPLACE SECURE VIEW REAL_STATE_VIEW as 
+select STATUS, FULL_ADDRESS as ADDRESS, ZIP_CODE, PRICE FROM TRAINING.PUBLIC.REAL_STATE ; 
+
+-- Data sharing
+CREATE OR REPLACE SHARE REAL_STATE_SHARE;
+
+grant usage on database TRAINING to SHARE REAL_STATE_SHARE;
+grant usage on schema TRAINING.PUBLIC to SHARE REAL_STATE_SHARE;
+grant select on view TRAINING.PUBLIC.REAL_STATE_VIEW to SHARE REAL_STATE_SHARE;
+
+ALTER SHARE REAL_STATE_SHARE ADD ACCOUNTS = AE64240; -- Update the account identifier
